@@ -21,7 +21,10 @@ class HotPile:
     player: BasePlayer
     num_piles: int
     tie_allowed: bool
-    verbose: bool
+    # verbosity = 0: no log output
+    # verbosity >= 1: basic log output for starting piles and game outcome
+    # verbosity >= 2: detailed log output for every action
+    verbosity: int
     seen_cards: CardCounter
     piles: Counter[int]
     deck: list[int]
@@ -31,13 +34,13 @@ class HotPile:
         player: BasePlayer,
         num_piles: int = 9,
         tie_allowed: bool = False,
-        verbose: bool = False,
+        verbosity: int = 0,
     ) -> None:
         """Verbose mode produce log for every action."""
         self.player = player
         self.num_piles = num_piles
         self.tie_allowed = tie_allowed
-        self.verbose = verbose
+        self.verbosity = verbosity
         self.seen_cards = CardCounter()
         self.piles = Counter()
 
@@ -67,11 +70,12 @@ class HotPile:
             self.piles[drawn_card] += 1
             self.seen_cards.add(drawn_card)
 
-        logger.info("Starting piles: %s", self._format_piles())
+        if self.verbosity >= 1:
+            logger.info("Starting piles: %s", self._format_piles())
 
     def on_move(self: HotPile, move_pile: int, above_below: bool, card_drawn: int) -> int | None:
         """Return the new top card if the pile is still active, None if the pile is discarded."""
-        if self.verbose:
+        if self.verbosity >= 2:
             logger.info("Call is %s %d, %d is drawn.", "above" if above_below else "below", move_pile, card_drawn)
 
         self._discard_pile(move_pile)
@@ -83,7 +87,7 @@ class HotPile:
             self.piles[card_drawn] += 1
             return card_drawn
 
-        if self.verbose:
+        if self.verbosity >= 2:
             logger.info("Remaining piles: %s", self._format_piles())
         return None
 
@@ -91,17 +95,21 @@ class HotPile:
         """Return number of cards remaining when the game ended."""
         hot_pile: int | None = None
         while self.deck:
-            # logger.info(self._format_piles())
             move_pile, above_below = self.player.play(self.seen_cards, self.piles, hot_pile)
             card_drawn = self.deck.pop()
             hot_pile = self.on_move(move_pile, above_below, card_drawn)
             self.seen_cards.add(card_drawn)
 
             if not self.piles:
-                logger.info("Loss!")
+                if self.verbosity >= 1:
+                    logger.info("Loss!")
                 return len(self.deck)
 
-        logger.info("Win!")
+            if self.verbosity >= 2:
+                logger.info("Current piles: %s", self._format_piles())
+
+        if self.verbosity >= 1:
+            logger.info("Win!")
         return len(self.deck)
 
     def reset(self: HotPile) -> None:

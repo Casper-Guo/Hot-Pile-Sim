@@ -11,6 +11,9 @@ from hot_pile_sim.util.card_counter import CardCounter
 
 
 class GreedyPlayer(BasePlayer):
+    greater_than_count = np.array([4 * (12 - i) for i in range(13)])
+    less_than_count = np.array([4 * i for i in range(13)])
+
     def play(
         self: GreedyPlayer,
         seen_cards: CardCounter,
@@ -19,19 +22,19 @@ class GreedyPlayer(BasePlayer):
     ) -> tuple[int, bool]:
         card_count = np.array(seen_cards)
         seen_leq_count = np.cumsum(card_count)
-        seen_geq_count = np.sum(card_count) - seen_leq_count + card_count
-        # print(np.stack((card_count, seen_leq_count, seen_geq_count)))
+        remaining_less_than_count = GreedyPlayer.less_than_count - (seen_leq_count - card_count)
+        remaining_greater_than_count = GreedyPlayer.greater_than_count - (np.sum(card_count) - seen_leq_count)
 
-        min_so_far = 100
+        max_so_far = -1
         best_so_far = (-1, True)
 
         for pile in piles:
-            if seen_leq_count[pile - 2] < min_so_far:
-                min_so_far = seen_leq_count[pile - 2]
+            if remaining_greater_than_count[pile - 2] > max_so_far:
+                max_so_far = remaining_greater_than_count[pile - 2]
                 best_so_far = (pile, True)
 
-            if seen_geq_count[pile - 2] < min_so_far:
-                min_so_far = seen_geq_count[pile - 2]
+            if remaining_less_than_count[pile - 2] > max_so_far:
+                max_so_far = remaining_less_than_count[pile - 2]
                 best_so_far = (pile, False)
 
         return best_so_far

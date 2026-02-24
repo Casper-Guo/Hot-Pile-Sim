@@ -93,7 +93,6 @@ select = [
 ]
 
 ignore = [
-    "ISC001",  # conflict with formatter
     "UP015",   # explicit is better than implicit
     "UP038",   # deprecated
     "FURB101", # Nothing wrong with using open and read
